@@ -1,0 +1,82 @@
+server:
+  port: 1202
+
+spring:
+  application:
+    name: demo-gateway
+  cloud:        # spring cloud gateway 路由配置方式
+    gateway:
+      discovery:      #是否与服务发现组件进行结合，通过 serviceId(必须设置成大写) 转发到具体的服务实例。默认为false，设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
+        locator:      #路由访问方式：http://Gateway_HOST:Gateway_PORT/大写的serviceId/**，其中微服务应用名默认大写访问。
+          enabled: true   #表示注册中心生效，我们可以通过注册中心的服务名进行路由转发
+          lowerCaseServiceId: true     #服务ID就可以是小写的了
+      routes:
+        - id: 163                     #网关路由到网易官网
+          uri: http://www.douyu.com/   #指向注册中心的服务，使用lb:// 加上ServiceName，当然也可以通过http://localhost:8080指向
+          predicates:
+          - Path=/douyu/**
+
+    #      - id: ORDER-SERVICE           #网关路由到订单服务order-service
+    #        uri: lb://ORDER-SERVICE
+    #        predicates:
+    #          - Path=/ORDER-SERVICE/**
+    #      - id: USER-SERVICE            #网关路由到用户服务user-service
+    #        uri: lb://USER-SERVICE
+    #        predicates:
+    #          - Pach=/USER-SERVICE/**
+
+#--------------------eureka---------------------
+eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+  client:
+    service-url:
+      defaultZone: http://localhost:1111/eureka/
+
+#---------------------OAuth2---------------------
+security:
+  oauth2:
+    client:
+      access-token-uri: http://localhost:${server.port}/auth/oauth/token
+      user-authorization-uri: http://localhost:${server.port}/auth/oauth/authorize
+      client-id: web
+    resource:
+      user-info-uri:  http://localhost:${server.port}/auth/api/member
+      prefer-token-info: false
+
+#----------------------超时配置-------------------
+ribbon:
+  ReadTimeout: 3000
+  ConnectTimeout: 3000
+  MaxAutoRetries: 1
+  MaxAutoRetriesNextServer: 2
+  eureka:
+    enabled: true
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          thread:
+            timeoutInMilliseconds: 3500
+
+#---------------------日志---------------------
+logging:
+  level:
+    org.springframework.cloud.gateway: trace
+    org.springframework.http.server.reactive: debug
+    org.springframework.web.reactive: debug
+    reactor.ipc.netty: debug
+
+#---------------------开放所有权限---------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      showDetails: ALWAYS
